@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>求职计数本</title>
+<title>求职日记</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet">
@@ -445,7 +445,7 @@ function dirAdvice(from,to){const rows=S.settings.directions.map(d=>{const f=fun
 let route='home',UI={frange:'all',pstatus:'active',pdir:'',bfield:'salary',q:''};
 let sheetFn=null,F={},C={dir:'',date:''},W=null;
 function renderNav(){const cur=route;
-  $('#side').innerHTML='<p class="brand">求职计数本</p>'+NAV.map(([k,n])=>`<a href="#${k}"${k===cur?' aria-current="page"':''}>${icon(k)}${n}</a>`).join('')+'<span class="sp"></span><p class="small muted" style="margin:0 8px">'+(Store.mode==='cloud'?'记录已自动保存':'记录保存在这个浏览器里')+'</p>';
+  $('#side').innerHTML='<p class="brand">求职日记</p>'+NAV.map(([k,n])=>`<a href="#${k}"${k===cur?' aria-current="page"':''}>${icon(k)}${n}</a>`).join('')+'<span class="sp"></span><p class="small muted" style="margin:0 8px">'+(Store.mode==='cloud'?'记录已自动保存':'记录保存在这个浏览器里')+'</p>';
   $('#bottom').innerHTML=NAV.slice(0,5).map(([k,n])=>`<a href="#${k}"${k===cur?' aria-current="page"':''}>${icon(k)}${n}</a>`).join('')}
 function demoBanner(){return (demo?`<div class="banner"><span>现在看到的是<b>示例数据</b>，随便点点看，不会被保存。</span><button class="btn sm" data-act="start">清空并开始记录</button></div>`:'')+(cloudNote?`<div class="note">${esc(cloudNote)}</div>`:'')}
 function tallySvg(n){const full=Math.floor(n/5),rem=n%5,max=14;let out='';
@@ -680,7 +680,7 @@ async function saveFile(filename,data,mime){try{
   }catch(e){if(!(e&&e.code==='declined'))toast('没有保存成功，请再试一次');return false}}
 function wrapPng(){const s=W.s,c=document.createElement('canvas');c.width=1080;c.height=1620;const x=c.getContext('2d');
   x.fillStyle='#F6F4EC';x.fillRect(0,0,1080,1620);x.fillStyle='#BBD3EE';x.fillRect(0,0,1080,60);['#A9C8EC','#F6DC8C','#F4AE9E','#A9D8B4','#D2BAE2'].forEach((c,i)=>{x.fillStyle=c;x.fillRect(80+i*52,96,40,12)});
-  x.fillStyle='#3A3F3A';x.textBaseline='top';x.font='500 40px "Noto Sans SC",sans-serif';x.globalAlpha=.75;x.fillText((S.settings.name?S.settings.name+'的':'求职计数本 · ')+W.label+'总结',80,140);x.globalAlpha=1;
+  x.fillStyle='#3A3F3A';x.textBaseline='top';x.font='500 40px "Noto Sans SC",sans-serif';x.globalAlpha=.75;x.fillText((S.settings.name?S.settings.name+'的':'求职日记 · ')+W.label+'总结',80,140);x.globalAlpha=1;
   x.font='900 120px "Noto Serif SC",serif';x.fillStyle='#3A6EA5';x.fillText(s.title.name,80,220);
   const rows=[['沟通',s.chat],['交换简历',s.resume],['HR 电话',s.hr],['面试',s.iv],['行动天数',s.activeDays],['还在流程中',s.waiting]];
   rows.forEach((r,i)=>{const y=470+i*160;x.fillStyle='#3A3F3A';x.font='500 48px "Noto Sans SC",sans-serif';x.fillText(r[0],80,y+36);x.font='800 110px "Bricolage Grotesque",sans-serif';x.textAlign='right';x.fillText(String(r[1]),1000,y);x.textAlign='left';x.globalAlpha=.25;x.fillRect(80,y+136,920,2);x.globalAlpha=1});
