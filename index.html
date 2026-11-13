@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>求职计数本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* 布局思路：一本方格纸上的计数本。蓝色圆珠笔是主色，黄色荧光笔只用来标出最该看的一处。 */
+:root{
+  /* 布局思路：一本方格纸上的计数本。配色是一组柔和的粉彩：雾蓝做主色，绿、黄、珊瑚、紫各管一类信息。 */
+  --bg:#F6F4EC; --grid:rgba(105,140,185,.10); --surface:#FFFFFF; --ink:#3A3F3A; --muted:#6C736C;
+  --line:#E3E0D3; --accent:#C4DAF3; --accent-ink:#1F3147; --accent-deep:#3A6EA5; --accent-soft:#ECE3F3;
+  --hi:#F8E08E; --hi-ink:#3D3410; --good:#3F8F63; --warn:#D4483B; --bad:#C2584A;
+  --c-blue:#A9C8EC; --c-yellow:#F6DC8C; --c-coral:#F4AE9E; --c-green:#A9D8B4; --c-purple:#D2BAE2;
+  --display:"Bricolage Grotesque","Noto Serif SC","Songti SC",serif;
+  --head:"Noto Serif SC","Songti SC","SimSun",serif;
+  --body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1F2320; --grid:rgba(150,180,220,.05); --surface:#2A2F2B; --ink:#ECEEE8; --muted:#A5ADA5;
+    --line:#3D443E; --accent:#8DB4E3; --accent-ink:#16202C; --accent-deep:#A6C6EC; --accent-soft:#3A3342;
+    --hi:#E6CC78; --hi-ink:#2B2508; --good:#7CC79A; --warn:#F28B7D; --bad:#EE9484;
+    --c-blue:#7FA6D6; --c-yellow:#D9BF66; --c-coral:#DE9684; --c-green:#7FBF95; --c-purple:#B197C6; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+    --bg:#1F2320; --grid:rgba(150,180,220,.05); --surface:#2A2F2B; --ink:#ECEEE8; --muted:#A5ADA5;
+    --line:#3D443E; --accent:#8DB4E3; --accent-ink:#16202C; --accent-deep:#A6C6EC; --accent-soft:#3A3342;
+    --hi:#E6CC78; --hi-ink:#2B2508; --good:#7CC79A; --warn:#F28B7D; --bad:#EE9484;
+    --c-blue:#7FA6D6; --c-yellow:#D9BF66; --c-coral:#DE9684; --c-green:#7FBF95; --c-purple:#B197C6; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;
+  -webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+h1,h2,h3{font-family:var(--head);margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:26px;font-weight:900}
+h2{font-size:18px;font-weight:700}
+h3{font-size:15px;font-weight:700;font-family:var(--body)}
+p{margin:0}
+.num{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.shell{display:flex;min-height:100%}
+.side{display:none}
+main{flex:1;min-width:0;padding:20px 16px 120px;max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.bottom{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:6px 2px 7px;text-decoration:none;color:var(--muted);font-size:12.5px;border-top:3px solid transparent;margin-top:-1px}
+.ni{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.bottom .ni{display:block;margin:2px auto 1px}
+.side .ni{vertical-align:-4px;margin-right:9px}
+.btn .ni{width:17px;height:17px}
+.bottom a[aria-current="page"]{color:var(--accent-deep);border-top-color:var(--accent-deep);font-weight:700}
+@media (min-width:900px){
+  .bottom{display:none}
+  .side{display:flex;flex-direction:column;gap:4px;width:200px;padding:28px 16px;border-right:1px solid var(--line);background:var(--surface);position:sticky;top:0;height:100vh}
+  .side .brand{font-family:var(--head);font-weight:900;font-size:20px;margin:0 8px 20px}
+  .side a{padding:9px 12px;border-radius:8px;text-decoration:none;color:var(--muted)}
+  .side a:hover{background:var(--accent-soft);color:var(--ink)}
+  .side a[aria-current="page"]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+  .side .sp{flex:1}
+  main{padding:32px 32px 120px}
+  .only-mobile{display:none !important}
+}
+
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.eyebrow{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(2,1fr)}
+.g2{grid-template-columns:1fr}
+@media (min-width:640px){.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1fr 1fr}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.tile .num{font-size:30px;line-height:1.1;display:block}
+.tile span.l{font-size:12.5px;color:var(--muted)}
+.g4 .tile:nth-child(1){background:color-mix(in srgb,var(--c-green) 32%,var(--surface))}
+.g4 .tile:nth-child(2){background:color-mix(in srgb,var(--c-yellow) 34%,var(--surface))}
+.g4 .tile:nth-child(3){background:color-mix(in srgb,var(--c-coral) 30%,var(--surface))}
+.g4 .tile:nth-child(4){background:color-mix(in srgb,var(--c-blue) 34%,var(--surface))}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--ink);font-weight:500;min-height:38px}
+.btn:hover{border-color:var(--accent-deep)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;min-height:32px;font-size:13px}
+.btn.big{min-height:52px;font-size:17px;min-width:64px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.chip-add{border:1px dashed var(--line);background:transparent;border-radius:999px;padding:6px 12px;min-height:36px;width:104px;font-size:14px}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink);white-space:nowrap}
+.tag.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.tag.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+mark{background:linear-gradient(transparent 35%,var(--hi) 35%);color:inherit;padding:0 2px}
+.hi-box{background:var(--hi);color:var(--hi-ink);border-radius:var(--r);padding:14px 16px}
+.banner{background:var(--hi);color:var(--hi-ink);border-radius:var(--r);padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner .btn{background:var(--hi-ink);color:var(--hi);border-color:var(--hi-ink)}
+.note{border:1px dashed var(--line);border-radius:var(--r);padding:10px 14px;color:var(--muted);font-size:13.5px}
+
+.fab{position:fixed;right:18px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:25;background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:14px 22px;font-weight:700;font-size:16px;box-shadow:0 6px 18px rgba(58,63,58,.22)}
+@media (min-width:900px){.fab{bottom:28px;right:32px}}
+
+/* 计数划痕 */
+.tally{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:44px}
+.tally svg{width:40px;height:40px;stroke:var(--accent-deep);stroke-width:2.6;stroke-linecap:round;fill:none}
+.today{display:grid;gap:14px}
+@media (min-width:640px){.today{grid-template-columns:1.4fr 1fr;align-items:center}}
+.today .big{font-size:56px;line-height:1}
+
+.heat{overflow-x:auto}
+.heat svg{display:block}
+.heat text{fill:var(--muted);font-size:10px}
+.heat rect{rx:3px}
+.legend{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+/* 漏斗 */
+.funnel{display:flex;flex-direction:column;gap:2px}
+.f-row{display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:center}
+.f-row .lab{font-size:13.5px;text-align:right}
+.f-bar{display:flex;align-items:center;gap:8px;min-height:34px}
+.f-bar i{display:block;height:28px;background:var(--c-green);border-radius:4px;min-width:4px}
+.f-bar b{font-family:var(--display);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums}
+.f-rate{grid-column:2;font-size:12.5px;color:var(--muted);padding:1px 0 1px 2px}
+.f-rate.weak span{background:var(--hi);color:var(--hi-ink);padding:1px 8px;border-radius:4px;font-weight:700}
+.f-row.layer2 .f-bar i{background:var(--c-blue)}
+.f-row.layer3 .f-bar i{background:var(--c-coral)}
+
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:500;color:var(--muted);font-size:12.5px}
+.scroll-x{overflow-x:auto}
+.mini{display:flex;gap:2px;align-items:flex-end;height:30px}
+.mini i{width:10px;background:var(--c-purple);border-radius:2px 2px 0 0;min-height:2px;display:block}
+
+.app{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c-green);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.app.ended{border-left-color:var(--line)}
+.app.offer{border-left-color:var(--good)}
+.app.stale{border-left-color:var(--warn)}
+.app h3{font-size:16px}
+.app .acts{display:flex;gap:8px;flex-wrap:wrap}
+.stage-h{display:flex;gap:8px;align-items:baseline;margin-top:6px}
+.stage-h .num{font-size:20px;color:var(--accent-deep)}
+.list{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:grid;grid-template-columns:120px 1fr 32px;gap:10px;align-items:center;font-size:14px}
+.bar-row i{display:block;height:14px;background:var(--c-coral);border-radius:3px;min-width:3px}
+.bar-row b{text-align:right;font-variant-numeric:tabular-nums}
+
+/* 弹层 */
+.back{position:fixed;inset:0;background:rgba(40,44,40,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);color:var(--ink);width:100%;max-width:560px;max-height:92%;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+@media (min-width:640px){.back{align-items:center}.sheet{border-radius:16px;max-height:88%}}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.sheet-b{padding:16px 18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.x{border:0;background:transparent;font-size:22px;line-height:1;padding:6px 10px;border-radius:8px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.field>.lbl{font-size:13px;color:var(--muted)}
+input[type=text],input[type=number],input[type=date],input[type=search],textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 12px;width:100%;min-height:40px}
+textarea{min-height:90px;resize:vertical}
+input.chip-add{width:112px;min-height:36px;border-style:dashed;background:transparent;border-radius:999px;padding:6px 12px}
+input[type=date]{position:relative;width:auto;min-width:170px;padding-right:38px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238A908A' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+input[type=date]::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+.choice{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:4px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);width:100%}
+.choice:hover{border-color:var(--accent-deep)}
+.choice b{font-size:17px}
+.choice span{color:var(--muted);font-size:13.5px}
+.numf{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px;font-size:13px;color:var(--muted)}
+.numf input,.step input{font-family:var(--display);font-weight:800;font-size:24px;color:var(--ink);min-height:52px}
+.step{display:grid;grid-template-columns:52px 1fr 52px;gap:8px;align-items:center}
+.step input{text-align:center}
+.step .btn{min-height:52px;font-size:22px;padding:0}
+.counter{display:grid;grid-template-columns:1fr;gap:8px;border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.counter .cur{display:flex;justify-content:space-between;align-items:baseline}
+.counter .cur .num{font-size:34px}
+.counter .bt{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+details summary{cursor:pointer;color:var(--accent-deep);font-size:14px}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--line);padding-left:14px}
+.tl li{font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl .x{font-size:18px;padding:2px 8px;color:var(--muted)}
+.pre{white-space:pre-wrap;word-break:break-word;font-size:14px;background:var(--bg);border-radius:8px;padding:10px 12px;max-height:220px;overflow:auto}
+/* 日历 */
+.datebtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 14px 8px 11px;min-height:40px;text-align:left;align-self:flex-start}
+.datebtn:hover{border-color:var(--accent-deep)}
+.datebtn svg{width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;flex:none}
+.datebtn.sm{min-height:34px;padding:4px 10px 4px 8px;font-size:13.5px}
+.cal-back{position:fixed;inset:0;z-index:90;background:rgba(40,44,40,.4);display:flex;align-items:center;justify-content:center;padding:16px}
+.cal{background:var(--surface);color:var(--ink);border-radius:16px;padding:16px;width:100%;max-width:330px;display:flex;flex-direction:column;gap:10px;box-shadow:0 14px 40px rgba(40,44,40,.25)}
+.cal-h{display:flex;align-items:center;justify-content:space-between}
+.cal-h b{font-family:var(--head);font-size:17px}
+.cal-h .x:disabled{opacity:.25;cursor:default}
+.cal-w,.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-w span{font-size:12px;color:var(--muted);padding:2px 0}
+.cd{aspect-ratio:1;border:0;background:transparent;border-radius:50%;font-variant-numeric:tabular-nums;font-size:15px;padding:0}
+.cd:hover:not(:disabled){background:var(--accent-soft)}
+.cd.tod{box-shadow:inset 0 0 0 1.5px var(--accent-deep)}
+.cd.sel{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.cd:disabled{color:var(--muted);opacity:.35;cursor:default}
+.cal-f{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+.toast-undo{background:transparent;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:2px 6px;margin-left:6px}
+.toast{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;z-index:80;font-size:14px;max-width:86%;text-align:center}
+
+/* 总结：固定的一套配色，不随主题变 */
+.wrap{position:fixed;inset:0;z-index:60;background:#3A3F3A;display:flex;align-items:center;justify-content:center}
+.wcard{position:relative;width:100%;height:100%;max-width:480px;max-height:860px;display:flex;flex-direction:column;padding:54px 28px 30px;overflow:hidden;color:#33382F}
+@media (min-width:520px){.wcard{border-radius:22px;height:92%}}
+.wcard.c0,.wcard.c5{background:#BBD3EE}
+.wcard.c1,.wcard.c6{background:#F8E3A1}
+.wcard.c2{background:#BFE3C6}
+.wcard.c3{background:#F6B9AB}
+.wcard.c4{background:#DCC8E8}
+.wcard.c7{background:#F6F4EC}
+.wprog{position:absolute;top:16px;left:16px;right:56px;display:flex;gap:4px}
+.wprog i{flex:1;height:3px;border-radius:2px;background:currentColor;opacity:.25}
+.wprog i.on{opacity:1}
+.wx{position:absolute;top:4px;right:8px;background:transparent;border:0;color:inherit;font-size:26px;padding:8px 12px;z-index:3}
+.wk{font-size:14px;opacity:.75;letter-spacing:.08em}
+.wt{font-family:var(--head);font-weight:900;font-size:28px;line-height:1.3;margin-top:10px;text-wrap:balance}
+.wn{font-family:var(--display);font-weight:800;font-size:clamp(88px,30vw,150px);line-height:.95;letter-spacing:-.04em;margin:18px 0 6px;font-variant-numeric:tabular-nums}
+.wn.mid{font-size:clamp(52px,16vw,84px);line-height:1.05}
+.wb{font-size:17px;line-height:1.7}
+.wsp{flex:1}
+.wfoot{font-size:13px;opacity:.7}
+.wnav{position:absolute;inset:50px 0 90px 0;display:flex;z-index:2}
+.wnav button{flex:1;background:transparent;border:0}
+.wnav button:first-child{flex:.5}
+.wlist{display:flex;flex-direction:column;gap:8px;margin-top:14px;font-size:17px}
+.wlist div{display:flex;justify-content:space-between;border-bottom:1px solid currentColor;padding-bottom:6px;border-color:color-mix(in srgb,currentColor 25%,transparent)}
+.wlist b{font-family:var(--display);font-weight:800;font-size:22px}
+.wact{position:relative;z-index:3;display:flex;gap:10px;flex-wrap:wrap}
+.wact .btn{background:#33382F;color:#F6F4EC;border-color:#33382F;font-weight:700}
+@media (prefers-reduced-motion:no-preference){
+  .wcard>*:not(.wprog):not(.wx):not(.wnav){animation:rise .5s both cubic-bezier(.2,.7,.2,1)}
+  .wcard .wn{animation-delay:.12s}.wcard .wb{animation-delay:.22s}.wcard .wlist{animation-delay:.22s}
+  @keyframes rise{from{transform:translateY(18px);opacity:0}to{transform:none;opacity:1}}
+  .sheet{animation:up .22s both}
+  @keyframes up{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side" id="side" aria-label="主导航"></nav>
+  <main id="view"><p class="muted">正在打开你的记录…</p></main>
+</div>
+<nav class="bottom" id="bottom" aria-label="主导航"></nav>
+<button class="fab" id="fab" data-act="add-open">＋ 添加记录</button>
+<div id="sheet"></div>
+<div id="wrap"></div>
+<div id="cal"></div>
+<div id="toast"></div>
+
+<script>
+/* ============ 可以自己改的配置 ============ */
+const RULES = {
+  minBase: 5,          // 上一层少于这个数时，不参与“最弱一环”的比较
+  heat: [1,11,21,31,41], // 热力图五档的起点：每天沟通+交换简历的次数
+  minSample: 20,       // 一个方向沟通数少于这个数，只提示样本太少
+  diag: {
+    'chat>resume': '沟通不少，但换到简历的少。先看方向和岗位要求对不对得上，再试着改打招呼的第一句话：直接说出你和这个岗位最匹配的一点。',
+    'resume>hr': '简历发出去了，但很少接到电话。问题多半在简历本身：把和目标岗位最相关的经历放到最上面，用岗位 JD 里的词来写。',
+    'hr>r1': 'HR 电话之后没进面试，通常是基本条件没对上：薪资预期、到岗时间、城市、经验年限。回想电话里对方在哪个问题后语气变了。',
+    'r1>r2': '一面是最容易挂的一轮。去“面试复盘”看看你选得最多的未通过原因，针对那一条准备。',
+    'r2>oc': '能到二面说明能力被认可了。二面更看重思路和匹配度，准备两三个能讲完整的项目故事。',
+    'oc>offer': '已经走到最后一步，差的多半是薪资或时机，不是你的问题。'
+  },
+  titles: [   // 从上到下，第一条满足的就是本期称号
+    {name:'面试常客',  test:s=>s.iv>=3, why:'这段时间进了好几场面试'},
+    {name:'精准狙击手', test:s=>s.chat>=15&&s.resume/s.chat>=0.2, why:'沟通不算多，但换简历的比例很高'},
+    {name:'海投战士',  test:s=>s.chat>=60, why:'沟通量很大，广撒网也是一种策略'},
+    {name:'全勤打卡王', test:s=>s.activeDays>=5, why:'几乎每天都在行动'},
+    {name:'稳步前行',  test:s=>s.chat>0, why:'保持着自己的节奏'},
+    {name:'蓄力中',   test:s=>true, why:'休息也是求职的一部分'}
+  ]
+};
+const DEFAULTS = {
+  directions:['产品','运营','数据'],
+  cities:['北京','上海','深圳','广州','杭州','远程'],
+  salary:['10K 以下','10-15K','15-20K','20-30K','30K 以上'],
+  sizes:['0-99 人','100-499 人','500-999 人','1000 人以上'],
+  industries:['互联网','电商','教育','游戏','金融','消费'],
+  failReasons:['经验不匹配','专业问题没答好','表达紧张','薪资没谈拢','不清楚'],
+  name:'', remindDays:7, lastDir:'', lastBackup:'', started:false
+};
+const STEPS=[{k:'hr',n:'HR 电话沟通'},{k:'test',n:'笔试'},{k:'r1',n:'一面'},{k:'r2',n:'二面'},{k:'r3',n:'三面'},{k:'oc',n:'OC 面'}];
+const RANK={hr:0,test:1,r1:2,r2:3,r3:4,oc:5};
+const STAGES=STEPS.filter(s=>['hr','r1','r2','oc'].includes(s.k)); // 漏斗里的四层；笔试和三面只记在时间线上
+const NEXT={hr:'r1',test:'r1',r1:'r2',r2:'oc',r3:'oc',oc:'offer'};
+const isTerm=l=>l.to==='end'||l.to==='offer';
+// 公司档案的阶段、状态、日期全部由时间线（log）推出来
+function norm(a){a.log=(a.log||[]).map((l,i)=>({l,i})).sort((x,y)=>x.l.at.localeCompare(y.l.at)||x.i-y.i).map(x=>x.l);
+  const ts=a.log.filter(isTerm);a.log=a.log.filter(l=>!isTerm(l));const steps=[...a.log];
+  if(!steps.length){const t=ts[0]||{};a.log.push({to:a.stage||'hr',at:a.createdAt||t.at||today()});steps.push(a.log[0])}
+  if(ts.length){const t=ts[ts.length-1],la=steps[steps.length-1].at;if(t.at<la)t.at=la;a.log.push(t)}
+  a.stage=steps.reduce((m,l)=>RANK[l.to]>RANK[m.to]?l:m).to;a.startStage=steps[0].to;a.createdAt=a.log[0].at;const t=a.log[a.log.length-1];a.updatedAt=t.at;
+  if(isTerm(t)){a.status=t.to==='offer'?'offer':'ended';a.endAt=t.at;a.endStage=a.stage;if(t.to==='offer'){a.endReason='';a.failReason=''}}
+  else{a.status='active';a.endAt='';a.endStage='';a.endReason='';a.failReason=''}
+  if(!a.interviews)a.interviews=[];return a}
+const LAYERS=[{k:'chat',n:'沟通过'},{k:'resume',n:'交换过简历'},...STAGES,{k:'offer',n:'Offer'}];
+const ENDS=['未通过','对方无后续','我主动放弃'];
+const ICON={
+  home:'<path d="M5 12H3l9-9 9 9h-2"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6"/>',
+  pipeline:'<path d="M4 16l6-7 5 5 5-6"/><circle cx="4" cy="16" r="1.2"/><circle cx="10" cy="9" r="1.2"/><circle cx="15" cy="14" r="1.2"/><circle cx="20" cy="8" r="1.2"/>',
+  funnel:'<path d="M4 5h16l-6 7.5V18l-4 2v-7.5z"/>',
+  directions:'<circle cx="12" cy="12" r="9"/><path d="M8 16l2-6 6-2-2 6z"/>',
+  review:'<path d="M12 8v4l2 2"/><path d="M3.05 11a9 9 0 1 1 .5 4"/><path d="M3 20v-5h5"/>',
+  wrapped:'<rect x="7" y="4" width="10" height="16" rx="2"/><path d="M4 7v10M20 7v10"/>',
+  prefs:'<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37 1 .608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/>'};
+const icon=k=>`<svg class="ni" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const NAV=[['home','首页'],['pipeline','进度'],['funnel','漏斗'],['directions','方向'],['review','复盘'],['wrapped','总结'],['prefs','设置']];
+
+/* ============ 工具 ============ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const today=()=>ds(new Date());
+const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return ds(d)};
+const dd=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
+const weekStart=s=>{const d=pd(s);const w=(d.getDay()+6)%7;return addDays(s,-w)};
+const monthStart=s=>s.slice(0,8)+'01';
+const pct=(a,b)=>b>0?Math.min(100,Math.round(a/b*1000)/10)+'%':'—';
+const md=s=>{const d=pd(s);return (d.getMonth()+1)+' 月 '+d.getDate()+' 日'};
+const uid=()=>'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function toast(t,undoId){const el=$('#toast');el.innerHTML='<div class="toast" role="status">'+esc(t)+(undoId?' <button class="toast-undo" data-act="undo" data-id="'+undoId+'">撤销</button>':'')+'</div>';clearTimeout(toast.t);toast.t=setTimeout(()=>el.innerHTML='',undoId?6000:2400)}
+
+/* ============ 数据与存储 ============ */
+let S={settings:{...DEFAULTS},counts:{},apps:[]};
+let demo=false, loaded=false, cloudNote='';
+const Store={
+  mode:'local',db:null,q:{},
+  async init(){
+    if(window.claude&&window.claude.use){
+      try{const db=await Promise.race([window.claude.use('db'),new Promise(r=>setTimeout(()=>r(null),10000))]);if(db){this.db=db;this.mode='cloud'}}catch(e){}
+    }
+    if(this.mode==='cloud'){
+      try{
+        const res=await Promise.race([Promise.all([this.db.doc('store/settings').get(),this.db.doc('store/counts').get(),this.db.collection('apps').get()]),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),10000))]);
+        const [s,c,a]=res;
+        if(s.exists)S.settings={...DEFAULTS,...s.data()};
+        if(c.exists)S.counts=rowsToCounts((c.data()||{}).rows||[]);
+        S.apps=a.docs.map(d=>norm({...JSON.parse(JSON.stringify(d.data())),id:d.id}));
+        return;
+      }catch(e){this.mode='local';cloudNote='暂时连不上保存的数据，现在看到的内容只存在这个浏览器里。稍后重新打开页面再试。'}
+    }
+    try{const raw=localStorage.getItem('jobtally:v1');if(raw){const o=JSON.parse(raw);S.settings={...DEFAULTS,...o.settings};S.counts=o.counts||{};S.apps=(o.apps||[]).map(norm)}}catch(e){}
+  },
+  put(path,fn){
+    if(demo)return;
+    if(this.mode==='local'){try{localStorage.setItem('jobtally:v1',JSON.stringify(S))}catch(e){toast('没能保存到这个浏览器，请在设置里导出备份')}return}
+    const e=this.q[path]||(this.q[path]={state:'idle'});e.fn=fn;
+    if(e.state==='wait')return;
+    if(e.state==='write'){e.dirty=true;return}
+    e.state='wait';
+    setTimeout(async()=>{
+      e.state='write';
+      do{e.dirty=false;
+        try{const d=e.fn();if(d===null)await this.db.doc(path).delete();else await this.db.doc(path).set(d)}
+        catch(err){toast(err&&err.code==='quota_exceeded'?'存储空间满了，请删掉一些旧记录':'这次修改没保存成功，请再操作一次')}
+      }while(e.dirty);
+      e.state='idle';
+    },350);
+  },
+  settings(){this.put('store/settings',()=>JSON.parse(JSON.stringify(S.settings)))},
+  counts(){this.put('store/counts',()=>({rows:countsToRows(S.counts)}))},
+  app(id){this.put('apps/'+id,()=>{const a=S.apps.find(x=>x.id===id);return a?JSON.parse(JSON.stringify(a)):null})},
+  all(oldIds){this.settings();this.counts();S.apps.forEach(a=>this.app(a.id));(oldIds||[]).forEach(id=>{if(!S.apps.find(a=>a.id===id))this.app(id)})}
+};
+function countsToRows(c){const r=[];for(const d in c)for(const dir in c[d]){const v=c[d][dir];if(v.chat||v.resume)r.push({d,dir,chat:v.chat||0,resume:v.resume||0})}return r}
+function rowsToCounts(rows){const c={};rows.forEach(r=>{(c[r.d]||(c[r.d]={}))[r.dir]={chat:r.chat||0,resume:r.resume||0}});return c}
+
+/* ============ 示例数据（只在内存里，不会保存） ============ */
+function makeDemo(){
+  let seed=20261113;const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+  const t=today(),counts={};
+  const dirs=[['产品',10,.1],['运营',7,.28],['数据',4,.16]];
+  for(let i=41;i>=0;i--){const d=addDays(t,-i),wd=pd(d).getDay();if((wd===0||wd===6)&&rnd()<.7)continue;if(rnd()<.1)continue;
+    dirs.forEach(([n,mx,rate])=>{if(rnd()<.3)return;const chat=1+Math.floor(rnd()*mx);let resume=0;for(let k=0;k<chat;k++)if(rnd()<rate)resume++;(counts[d]||(counts[d]={}))[n]={chat,resume}})}
+  const mk=(company,title,direction,salary,size,created,path,end)=>{
+    const a={id:uid(),company,title,direction,city:'上海',salary,size,industry:'互联网',jd:'（示例）负责相关业务的日常运营与数据复盘，配合产品迭代。',note:'',log:[{to:'hr',at:addDays(t,-created)}],interviews:[]};
+    path.forEach(([k,ago])=>a.log.push({to:k,at:addDays(t,-ago)}));if(end)a.log.push({to:'end',at:addDays(t,-end[1])});norm(a);
+    if(end){a.endReason=end[0];a.failReason=end[2]||''}return a};
+  const apps=[
+    mk('青柠科技','用户运营','运营','15-20K','100-499 人',20,[['r1',15],['r2',6]]),
+    mk('拾光文化','新媒体运营','运营','10-15K','0-99 人',26,[['r1',21],['oc',3]]),
+    mk('北辰数据','数据分析师','数据','15-20K','500-999 人',9,[['r1',4]]),
+    mk('栗子出行','产品运营','产品','15-20K','1000 人以上',10,[]),
+    mk('远舟跨境','运营专员','运营','10-15K','100-499 人',2,[]),
+    mk('云帆互动','产品助理','产品','10-15K','100-499 人',30,[],['对方无后续',18]),
+    mk('知鱼教育','内容运营','运营','10-15K','500-999 人',33,[['r1',28]],['未通过',25,'专业问题没答好']),
+    mk('南山智能','数据运营','数据','15-20K','1000 人以上',24,[['r1',19]],['未通过',16,'经验不匹配']),
+    mk('半夏健康','用户运营','运营','15-20K','100-499 人',36,[['r1',31],['r2',24]],['未通过',20,'表达紧张']),
+    mk('橘子互娱','活动运营','运营','20-30K','1000 人以上',14,[],['我主动放弃',12])
+  ];
+  apps[0].interviews=[{id:uid(),stage:'r1',date:addDays(t,-15),format:'视频',rating:'好',questions:'讲一个你做过的拉新活动，数据怎么样？\n如果预算减半你会怎么调整？',note:'数据部分讲得比较顺。'}];
+  apps[6].interviews=[{id:uid(),stage:'r1',date:addDays(t,-28),format:'视频',rating:'差',questions:'你怎么判断一篇内容的好坏？\n说说你对我们产品内容的看法。',note:'没提前体验产品，第二题答空了。'}];
+  apps[8].interviews=[{id:uid(),stage:'r2',date:addDays(t,-24),format:'现场',rating:'一般',questions:'用户分层你会怎么做？\n你和上一份工作的同事怎么协作？',note:'开头太紧张，语速快。'}];
+  return {settings:{...DEFAULTS},counts,apps};
+}
+
+/* ============ 计算 ============ */
+function sumCounts(from,to,dir){let chat=0,resume=0;const byDir={},byDay={};
+  for(const d in S.counts){if(d<from||d>to)continue;for(const n in S.counts[d]){if(dir&&n!==dir)continue;const v=S.counts[d][n];chat+=v.chat||0;resume+=v.resume||0;
+    const b=byDir[n]||(byDir[n]={chat:0,resume:0});b.chat+=v.chat||0;b.resume+=v.resume||0;byDay[d]=(byDay[d]||0)+(v.chat||0)+(v.resume||0)}}
+  return {chat,resume,byDir,byDay}}
+function reachDate(a,k){if(k==='offer'){const e=a.log.find(l=>l.to==='offer');return e?e.at:null}
+  const e=a.log.find(l=>RANK[l.to]>=RANK[k]);return e?e.at:(a.status==='offer'?a.endAt:null)}
+function funnel(from,to,dir){const c=sumCounts(from,to,dir);const n={chat:c.chat,resume:c.resume};
+  const apps=S.apps.filter(a=>!dir||a.direction===dir);
+  [...STAGES,{k:'offer'}].forEach(s=>{n[s.k]=apps.filter(a=>{const d=reachDate(a,s.k);return d&&d>=from&&d<=to}).length});
+  let weak=null,wr=2;for(let i=1;i<LAYERS.length;i++){const p=n[LAYERS[i-1].k],v=n[LAYERS[i].k];if(p>=RULES.minBase){const r=v/p;if(r<wr){wr=r;weak=LAYERS[i-1].k+'>'+LAYERS[i].k}}}
+  return {n,weak,byDir:c.byDir,byDay:c.byDay}}
+function stageWaits(){const acc={};S.apps.forEach(a=>a.log.forEach((l,i)=>{if(RANK[l.to]==null||!a.log[i+1])return;const o=acc[l.to]||(acc[l.to]={s:0,n:0});o.s+=Math.max(0,dd(l.at,a.log[i+1].at));o.n++}));
+  const out={};STEPS.forEach(s=>out[s.k]=acc[s.k]?Math.round(acc[s.k].s/acc[s.k].n*10)/10:null);return out}
+function activeDaySet(){const set={};for(const d in S.counts){let t=0;for(const n in S.counts[d])t+=(S.counts[d][n].chat||0)+(S.counts[d][n].resume||0);if(t>0)set[d]=1}
+  S.apps.forEach(a=>a.log.forEach(l=>set[l.at]=1));return set}
+function totalDays(){return Object.keys(activeDaySet()).length}
+function firstDay(){let f=today();for(const d in S.counts)if(d<f)f=d;S.apps.forEach(a=>{if(a.createdAt<f)f=a.createdAt});return f}
+function range(key){const t=today();if(key==='week')return [weekStart(t),t];if(key==='month')return [monthStart(t),t];if(key==='d30')return [addDays(t,-29),t];return ['0000-00-00','9999-99-99']}
+const stale=a=>a.status==='active'&&dd(a.updatedAt||a.createdAt,today())>=S.settings.remindDays;
+const stageName=k=>k==='offer'?'Offer':(STEPS.find(s=>s.k===k)||{}).n||k;
+const stageEnter=a=>{const e=[...a.log].reverse().find(l=>l.to===a.stage);return e?e.at:a.createdAt};
+function dirAdvice(from,to){const rows=S.settings.directions.map(d=>{const f=funnel(from,to,d);return {d,...f.n}}).filter(r=>r.chat>=RULES.minSample);
+  if(rows.length<2)return {text:'每个方向至少沟通 '+RULES.minSample+' 次后，这里会给出方向建议。现在样本还太少，先不下结论。',best:null};
+  rows.sort((a,b)=>b.resume/b.chat-a.resume/a.chat);const best=rows[0],most=[...rows].sort((a,b)=>b.chat-a.chat)[0];
+  if(best.d===most.d)return {text:'你投入最多的「'+best.d+'」也是换简历比例最高的方向（'+pct(best.resume,best.chat)+'），目前的侧重是对的。',best};
+  return {text:'「'+most.d+'」沟通了 '+most.chat+' 次，换简历比例 '+pct(most.resume,most.chat)+'；「'+best.d+'」沟通 '+best.chat+' 次，比例 '+pct(best.resume,best.chat)+'。可以考虑把一部分精力挪到「'+best.d+'」。',best}}
+
+/* ============ 视图 ============ */
+let route='home',UI={frange:'all',pstatus:'active',pdir:'',bfield:'salary',q:''};
+let sheetFn=null,F={},C={dir:'',date:''},W=null;
+function renderNav(){const cur=route;
+  $('#side').innerHTML='<p class="brand">求职计数本</p>'+NAV.map(([k,n])=>`<a href="#${k}"${k===cur?' aria-current="page"':''}>${icon(k)}${n}</a>`).join('')+'<span class="sp"></span><p class="small muted" style="margin:0 8px">'+(Store.mode==='cloud'?'记录已自动保存':'记录保存在这个浏览器里')+'</p>';
+  $('#bottom').innerHTML=NAV.slice(0,5).map(([k,n])=>`<a href="#${k}"${k===cur?' aria-current="page"':''}>${icon(k)}${n}</a>`).join('')}
+function demoBanner(){return (demo?`<div class="banner"><span>现在看到的是<b>示例数据</b>，随便点点看，不会被保存。</span><button class="btn sm" data-act="start">清空并开始记录</button></div>`:'')+(cloudNote?`<div class="note">${esc(cloudNote)}</div>`:'')}
+function tallySvg(n){const full=Math.floor(n/5),rem=n%5,max=14;let out='';
+  const one=k=>'<svg viewBox="0 0 40 40" aria-hidden="true">'+[8,16,24,32].slice(0,Math.min(k,4)).map(x=>`<path d="M${x} 6V34"/>`).join('')+(k===5?'<path d="M3 29L37 11"/>':'')+'</svg>';
+  for(let i=0;i<Math.min(full,max);i++)out+=one(5);if(full<max&&rem)out+=one(rem);
+  if(full>max)out+='<span class="muted small">＋'+((full-max)*5+rem)+'</span>';if(!n)out='<span class="muted small">今天还没开始，点右下角添加记录。</span>';
+  return '<div class="tally" role="img" aria-label="计数 '+n+'">'+out+'</div>'}
+function heatmap(){const t=today(),weeks=13,start=addDays(weekStart(t),-(weeks-1)*7),c=sumCounts(start,t).byDay,th=RULES.heat;
+  const cs=15,g=3,L=30,T=18,op=[.55,.2,.4,.6,.8,1];let cells='',labs=[];
+  for(let w=0;w<weeks;w++)for(let r=0;r<7;r++){const d=addDays(start,w*7+r);
+    if((w===0&&r===0)||d.slice(8)==='01'){if(w>0&&w<=2&&labs.length&&labs[0].w===0)labs.shift();labs.push({w,m:+d.slice(5,7)})}
+    if(d>t)continue;const v=c[d]||0,lv=th.filter(x=>v>=x).length;
+    cells+=`<rect x="${L+w*(cs+g)}" y="${T+r*(cs+g)}" width="${cs}" height="${cs}" fill="${lv?'var(--accent-deep)':'var(--line)'}" opacity="${op[lv]}"><title>${md(d)}：${v} 次</title></rect>`}
+  const W=L+weeks*(cs+g),H=T+7*(cs+g);
+  const txt=labs.map(l=>`<text x="${L+l.w*(cs+g)}" y="11">${l.m} 月</text>`).join('')+[['周一',0],['周三',2],['周五',4]].map(([n,r])=>`<text x="0" y="${T+r*(cs+g)+12}">${n}</text>`).join('');
+  return `<div class="heat"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="最近 13 周每天的沟通与交换简历次数">${txt}${cells}</svg></div>
+  <div class="legend">少 <i style="background:var(--line);opacity:.55"></i>${op.slice(1).map(o=>`<i style="background:var(--accent-deep);opacity:${o}"></i>`).join('')} 多<span style="margin-left:8px">每天 ${th[0]}–${th[1]-1} · ${th[1]}–${th[2]-1} · ${th[2]}–${th[3]-1} · ${th[3]}–${th[4]-1} · ${th[4]-1} 次以上</span></div>`}
+function appCard(a){const st=stale(a),days=dd(stageEnter(a),a.status==='active'?today():a.endAt);
+  const state=a.status==='offer'?'<span class="tag good">拿到 Offer</span>':a.status==='ended'?`<span class="tag bad">${esc(a.endReason)}${a.failReason?' · '+esc(a.failReason):''}</span>`:st?`<span class="tag warn">${dd(a.updatedAt,today())} 天没更新</span>`:'';
+  return `<article class="app ${a.status==='ended'?'ended':a.status==='offer'?'offer':st?'stale':''}">
+    <div class="card-h"><h3>${esc(a.company||'未填公司')}<span class="muted" style="font-weight:400"> · ${esc(a.title||'未填岗位')}</span></h3>${state}</div>
+    <div class="row small"><span class="tag">${esc(a.direction||'未分方向')}</span>${a.salary?`<span class="tag">${esc(a.salary)}</span>`:''}${a.city?`<span class="tag">${esc(a.city)}</span>`:''}<span class="muted">${a.status==='active'?'在'+stageName(a.stage)+'停留 '+days+' 天':'止步于'+stageName(a.endStage||a.stage)}</span></div>
+    <div class="acts">${a.status==='active'?`<button class="btn sm primary" data-act="prog-open" data-id="${a.id}">更新进度</button>`:''}<button class="btn sm ghost" data-act="detail" data-id="${a.id}">详情</button></div>
+  </article>`}
+
+const Views={
+home(){const t=today(),td=sumCounts(t,t),wk=sumCounts(weekStart(t),t),all=sumCounts('0000','9999');
+  const act=S.apps.filter(a=>a.status==='active'),todo=act.filter(stale),day=dd(firstDay(),t)+1;
+  const lw=[addDays(weekStart(t),-7),addDays(weekStart(t),-1)];
+  return `${demoBanner()}
+  <header class="top"><div><p class="eyebrow">${md(t)} · 求职第 ${day} 天</p><h1>${S.settings.name?esc(S.settings.name)+'，':''}每一次沟通都算数</h1></div>
+    <div class="row only-mobile"><a class="btn sm" href="#wrapped">${icon('wrapped')}总结</a><a class="btn sm" href="#prefs">${icon('prefs')}设置</a></div></header>
+  <section class="card"><div class="today"><div><p class="muted small">今天沟通过</p>${tallySvg(td.chat)}</div>
+    <div class="row" style="gap:24px"><div><span class="num big">${td.chat}</span><p class="muted small">沟通</p></div><div><span class="num big">${td.resume}</span><p class="muted small">交换简历</p></div></div></div></section>
+  <section class="grid g4">
+    <div class="tile"><span class="num">${wk.chat}</span><span class="l">本周沟通</span></div>
+    <div class="tile"><span class="num">${wk.resume}</span><span class="l">本周交换简历</span></div>
+    <div class="tile"><span class="num">${all.chat+baseOf('chat')}</span><span class="l">累计沟通</span></div>
+    <div class="tile"><span class="num">${totalDays()}</span><span class="l">累计行动天数</span></div>
+  </section>
+  <section class="card"><div class="card-h"><h2>你的努力</h2><span class="muted small">最近 13 周，每格一天</span></div>${heatmap()}</section>
+  <section class="card"><div class="card-h"><h2>上周总结</h2><button class="btn sm primary" data-act="wrap-open" data-from="${lw[0]}" data-to="${lw[1]}" data-label="上周">打开看看</button></div>
+    <p class="muted small">每周一和每月 1 号会有新的总结，在「总结」里可以回看以前的。</p></section>
+  <section class="card"><div class="card-h"><h2>进行中的公司</h2><a class="btn sm ghost" href="#pipeline">全部 ${act.length} 家</a></div>
+    ${act.length?`<div class="list">${act.filter(a=>!stale(a)).slice(0,4).map(appCard).join('')||'<p class="muted small">其余的都在下面的「该更新了」里。</p>'}</div>`:'<p class="muted">还没有进入 HR 电话的公司。接到电话后，点右下角「添加记录」，选「有公司约我了」。</p>'}</section>
+  ${todo.length?`<section class="card"><div class="card-h"><h2>该更新了</h2><span class="muted small">超过 ${S.settings.remindDays} 天没动静</span></div><div class="list">${todo.map(appCard).join('')}</div></section>`:''}`},
+
+pipeline(){let list=S.apps.filter(a=>(UI.pstatus==='all'||(UI.pstatus==='active'?a.status==='active':a.status!=='active'))&&(!UI.pdir||a.direction===UI.pdir));
+  const chip=(k,v,n)=>`<button class="chip" data-act="ui" data-k="${k}" data-v="${esc(v)}" aria-pressed="${UI[k]===v}">${esc(n)}</button>`;
+  let body='';
+  if(UI.pstatus==='active'){[...STEPS].reverse().forEach(s=>{const g=list.filter(a=>a.stage===s.k);if(g.length)body+=`<div class="stage-h"><span class="num">${g.length}</span><h2>${s.n}</h2></div><div class="list">${g.map(appCard).join('')}</div>`})}
+  else body=`<div class="list">${list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||'')).map(appCard).join('')}</div>`;
+  return `${demoBanner()}<header class="top"><div><p class="eyebrow">从 HR 电话开始，每家公司一份档案</p><h1>进度</h1></div></header>
+  <div class="chips">${chip('pstatus','active','进行中')}${chip('pstatus','done','已结束')}${chip('pstatus','all','全部')}</div>
+  <div class="chips">${chip('pdir','','所有方向')}${S.settings.directions.map(d=>chip('pdir',d,d)).join('')}</div>
+  ${list.length?body:'<div class="note">这里还没有记录。</div>'}`},
+
+funnel(){const [from,to]=range(UI.frange),f=funnel(from,to),mx=Math.max(1,...LAYERS.map(l=>f.n[l.k])),w=stageWaits();
+  const chip=(v,n)=>`<button class="chip" data-act="ui" data-k="frange" data-v="${v}" aria-pressed="${UI.frange===v}">${n}</button>`;
+  let rows='';LAYERS.forEach((l,i)=>{if(i>0){const key=LAYERS[i-1].k+'>'+l.k;rows+=`<div class="f-row"><span></span><div class="f-rate ${f.weak===key?'weak':''}"><span>↓ ${pct(f.n[l.k],f.n[LAYERS[i-1].k])}${f.weak===key?' · 最该看这一步':''}</span></div></div>`}
+    rows+=`<div class="f-row ${i===6?'layer3':i>1?'layer2':''}"><span class="lab">${l.n}</span><div class="f-bar"><i style="width:${f.n[l.k]/mx*100}%"></i><b>${f.n[l.k]}</b></div></div>`});
+  const total=f.n.chat+f.n.resume+f.n.hr;
+  const reasons={};S.apps.forEach(a=>{if(a.failReason)reasons[a.failReason]=(reasons[a.failReason]||0)+1});const topR=Object.entries(reasons).sort((a,b)=>b[1]-a[1])[0];
+  let diag=f.weak?RULES.diag[f.weak]:'数据还不够多，先继续记录。上一层满 '+RULES.minBase+' 条后，这里会指出最该看的一步。';
+  if(f.weak&&(f.weak==='r1>r2'||f.weak==='r2>oc')&&topR)diag+=' 你记录最多的未通过原因是「'+topR[0]+'」（'+topR[1]+' 次）。';
+  return `${demoBanner()}<header class="top"><div><p class="eyebrow">每一层走到下一层的比例</p><h1>漏斗与诊断</h1></div></header>
+  <div class="chips">${chip('week','本周')}${chip('month','本月')}${chip('d30','近 30 天')}${chip('all','全部')}</div>
+  ${total?`<section class="card"><div class="funnel">${rows}</div><p class="muted small">前两层来自你的计数，后面各层来自公司档案，按「走到这一步或更后面」计算：跳过二面直接 OC 面的，也算过了二面。${baseOf('chat')?'开始使用前在 Boss 上已有的 '+baseOf('chat')+' 次沟通没有计入。':''}每一层比例都低是常态，要看的是哪一步比别的低得多。</p></section>
+  <section class="hi-box"><h3 style="margin-bottom:4px">${f.weak?'现在最该看：'+f.weak.split('>').map(k=>(LAYERS.find(l=>l.k===k)||{}).n).join(' → '):'诊断'}</h3><p>${esc(diag)}</p></section>
+  <section class="card"><h2>每个阶段平均要等几天</h2><div class="grid g4">${STEPS.filter(s=>STAGES.includes(s)||w[s.k]!=null).map(s=>`<div class="tile"><span class="num">${w[s.k]==null?'—':w[s.k]}</span><span class="l">${s.n}</span></div>`).join('')}</div><p class="muted small">从进入这个阶段，到时间线上的下一步。只统计已经有下一步的记录。</p></section>`
+  :'<div class="note">这个时间段里还没有记录。点右下角「添加记录」开始。</div>'}`},
+
+directions(){const rows=S.settings.directions.map(d=>({d,...funnel('0000','9999',d).n})).filter(r=>r.chat||r.resume||r.hr);
+  const adv=dirAdvice('0000','9999'),mxc=Math.max(1,...rows.map(r=>r.chat));
+  const fields={salary:'薪资',size:'公司规模',industry:'行业'},groups={};
+  S.apps.forEach(a=>{const k=a[UI.bfield]||'未填';const g=groups[k]||(groups[k]={n:0,iv:0,offer:0});g.n++;if(reachDate(a,'r1'))g.iv++;if(a.status==='offer')g.offer++});
+  return `${demoBanner()}<header class="top"><div><p class="eyebrow">哪个方向更值得投</p><h1>方向对比</h1></div></header>
+  <section class="hi-box"><h3 style="margin-bottom:4px">方向建议</h3><p>${esc(adv.text)}</p></section>
+  ${rows.length?`<section class="card"><div class="scroll-x"><table><thead><tr><th>方向</th><th>沟通</th><th>简历</th><th>沟通→简历</th><th>HR 电话</th><th>简历→电话</th><th>面试</th><th>Offer</th><th>形状</th></tr></thead><tbody>
+  ${rows.map(r=>`<tr><td><b>${esc(r.d)}</b>${r.chat<RULES.minSample?' <span class="tag warn">样本少</span>':''}</td><td>${r.chat}</td><td>${r.resume}</td><td>${adv.best&&adv.best.d===r.d?'<mark>'+pct(r.resume,r.chat)+'</mark>':pct(r.resume,r.chat)}</td><td>${r.hr}</td><td>${pct(r.hr,r.resume)}</td><td>${r.r1}</td><td>${r.offer}</td>
+    <td><div class="mini" title="沟通、简历、HR 电话、一面、二面、OC 面">${['chat','resume','hr','r1','r2','oc'].map(k=>`<i style="height:${Math.sqrt(r[k]/mxc)*100}%"></i>`).join('')}</div></td></tr>`).join('')}
+  </tbody></table></div><p class="muted small">沟通少于 ${RULES.minSample} 次的方向标了「样本少」，比例只能参考。「形状」列的柱高按平方根缩放，方便看清后几层。</p></section>`:'<div class="note">还没有按方向的记录。</div>'}
+  <section class="card"><div class="card-h"><h2>进入 HR 电话的公司，按条件看</h2></div>
+    <div class="chips">${Object.entries(fields).map(([k,n])=>`<button class="chip" data-act="ui" data-k="bfield" data-v="${k}" aria-pressed="${UI.bfield===k}">${n}</button>`).join('')}</div>
+    ${S.apps.length?`<div class="scroll-x"><table><thead><tr><th>${fields[UI.bfield]}</th><th>公司数</th><th>进入面试</th><th>Offer</th></tr></thead><tbody>${Object.entries(groups).sort((a,b)=>b[1].n-a[1].n).map(([k,g])=>`<tr><td>${esc(k)}</td><td>${g.n}</td><td>${g.iv}（${pct(g.iv,g.n)}）</td><td>${g.offer}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">有了公司档案后这里会出现对比。</p>'}</section>`},
+
+review(){const reasons={};S.apps.forEach(a=>{if(a.status==='ended'){const k=a.endReason==='未通过'?(a.failReason||'未通过（没选原因）'):a.endReason;reasons[k]=(reasons[k]||0)+1}});
+  const rs=Object.entries(reasons).sort((a,b)=>b[1]-a[1]),mx=Math.max(1,...rs.map(r=>r[1]));
+  return `${demoBanner()}<header class="top"><div><p class="eyebrow">被问过的题，下次就是你的题库</p><h1>面试复盘</h1></div></header>
+  <section class="card"><h2>没走下去的原因</h2>${rs.length?rs.map(([k,v])=>`<div class="bar-row"><span>${esc(k)}</span><i style="width:${v/mx*100}%"></i><b>${v}</b></div>`).join(''):'<p class="muted small">还没有结束的记录。</p>'}</section>
+  <section class="card"><div class="card-h"><h2>面试记录</h2></div><input type="search" id="ivq" placeholder="搜索公司或被问到的问题" value="${esc(UI.q)}" aria-label="搜索面试记录"><div class="list" id="ivlist">${ivList()}</div></section>`},
+
+wrapped(){const t=today(),ws=weekStart(t),ms=monthStart(t);const btn=(f,to,l,cls)=>`<button class="btn ${cls||''}" data-act="wrap-open" data-from="${f}" data-to="${to}" data-label="${l}">${l}</button>`;
+  const weeks=[],months=[];for(let i=1;i<=8;i++){const f=addDays(ws,-7*i);weeks.push(btn(f,addDays(f,6),i===1?'上周':md(f)+'那周',i===1?'primary':''))}
+  let m=pd(ms);for(let i=1;i<=6;i++){m.setMonth(m.getMonth()-1);const f=ds(m),e=new Date(m.getFullYear(),m.getMonth()+1,0);months.push(btn(f,ds(e),i===1?'上个月':m.getFullYear()+' 年 '+(m.getMonth()+1)+' 月',i===1?'primary':''))}
+  return `${demoBanner()}<header class="top"><div><p class="eyebrow">先看努力，再看结果</p><h1>周总结与月总结</h1></div><a class="btn sm" href="#home">← 返回</a></header>
+  <section class="card"><h2>还在进行的</h2><div class="row">${btn(ws,t,'本周到今天')}${btn(ms,t,'本月到今天')}</div></section>
+  <section class="card"><h2>每周</h2><div class="row">${weeks.join('')}</div></section>
+  <section class="card"><h2>每月</h2><div class="row">${months.join('')}</div></section>`},
+
+prefs(){const lists=[['directions','投递方向'],['cities','城市'],['salary','薪资区间'],['sizes','公司规模'],['industries','行业'],['failReasons','面试未通过的原因']];
+  const has=Object.keys(S.counts).length||S.apps.length;
+  return `${demoBanner()}<header class="top"><div><p class="eyebrow">选择题的选项都在这里改</p><h1>设置</h1></div><a class="btn sm" href="#home">← 返回</a></header>
+  <section class="card"><h2>你的名字</h2><div class="field"><label for="uname">会显示在首页、总结卡片和导出的图片上。不填也可以。</label><input type="text" id="uname" maxlength="20" value="${esc(S.settings.name||'')}" style="max-width:260px"></div></section>
+  ${lists.map(([k,n])=>`<section class="card"><h2>${n}</h2>${listEditor(k)}</section>`).join('')}
+  <section class="card"><h2>提醒</h2><div class="field"><label for="rd">公司档案超过几天没更新就提醒我</label><input type="number" id="rd" min="1" max="60" value="${S.settings.remindDays}" style="max-width:120px"></div></section>
+  <section class="card"><h2>备份</h2><p class="muted small">${Store.mode==='cloud'?'记录已自动保存，换设备打开这个页面也能看到。导出一份文件可以留作备份，或搬到别处。':'记录只存在这个浏览器里，清除浏览器数据会丢失。建议每周导出一次。'}${S.settings.lastBackup?' 上次导出：'+md(S.settings.lastBackup)+'。':''}</p>
+    <div class="row"><button class="btn" data-act="export">导出全部记录</button><label class="btn" for="imp">从备份文件导入</label><input type="file" id="imp" accept=".json,application/json" hidden></div></section>
+  <section class="card"><h2>清空</h2><div class="row">${!demo&&!has?'<button class="btn" data-act="demo">载入示例数据看看效果</button>':''}${demo?'<button class="btn primary" data-act="start">清空示例并开始记录</button>':'<button class="btn danger" data-act="wipe-ask">删除我的全部记录</button>'}</div></section>`}
+};
+function listEditor(k){return `<div class="chips">${S.settings[k].map(v=>`<span class="chip" style="display:inline-flex;align-items:center;gap:6px">${esc(v)}<button class="x" style="font-size:16px;padding:0 4px" data-act="opt-del" data-k="${k}" data-v="${esc(v)}" aria-label="删除 ${esc(v)}">×</button></span>`).join('')}<input class="chip-add" type="text" data-optadd="${k}" placeholder="＋ 添加" aria-label="添加选项"></div>`}
+function ivList(){const q=UI.q.trim().toLowerCase(),all=[];S.apps.forEach(a=>(a.interviews||[]).forEach(iv=>all.push({a,iv})));
+  const list=all.filter(({a,iv})=>!q||(a.company+a.title+iv.questions+iv.note).toLowerCase().includes(q)).sort((x,y)=>y.iv.date.localeCompare(x.iv.date));
+  if(!all.length)return '<p class="muted small">在公司档案的详情里可以添加面试记录。</p>';if(!list.length)return '<p class="muted small">没有搜到。</p>';
+  return list.map(({a,iv})=>`<article class="app"><div class="card-h"><h3>${esc(a.company)} · ${stageName(iv.stage)}</h3><span class="muted small">${md(iv.date)} · ${esc(iv.format||'')}${iv.rating?' · 自评 '+esc(iv.rating):''}</span></div>${iv.questions?`<div class="pre">${esc(iv.questions)}</div>`:''}${iv.note?`<p class="small">${esc(iv.note)}</p>`:''}</article>`).join('')}
+
+function render(){if(!loaded)return;renderNav();$('#view').innerHTML=(Views[route]||Views.home)();$('#fab').style.display=route==='prefs'?'none':''}
+function go(){const h=(location.hash||'').replace('#','');route=Views[h]?h:'home';render();window.scrollTo(0,0)}
+
+/* ============ 弹层 ============ */
+function openSheet(fn){sheetFn=fn;renderSheet()}
+function closeSheet(){sheetFn=null;$('#sheet').innerHTML=''}
+function renderSheet(){const el=$('#sheet');if(renderSheet.busy)return;renderSheet.busy=true;try{renderSheet0(el)}finally{renderSheet.busy=false}}
+function renderSheet0(el){if(!sheetFn){el.innerHTML='';return}const b=el.querySelector('.sheet-b'),st=b?b.scrollTop:0;const {title,body}=sheetFn();
+  el.innerHTML=`<div class="back" data-act="sheet-back"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-h"><h2>${esc(title)}</h2><button class="x" data-act="sheet-close" aria-label="关闭">×</button></div><div class="sheet-b">${body}</div></div></div>`;
+  const nb=el.querySelector('.sheet-b');if(nb)nb.scrollTop=st}
+const pick=(f,opts,addKey)=>`<div class="chips">${opts.map(v=>{const val=typeof v==='string'?v:v[0],lab=typeof v==='string'?v:v[1];return `<button type="button" class="chip" data-act="pick" data-f="${f}" data-v="${esc(val)}" aria-pressed="${F[f]===val}">${esc(lab)}</button>`}).join('')}${addKey?`<input class="chip-add" type="text" data-optadd="${addKey}" data-pick="${f}" placeholder="＋ 其他" aria-label="添加并选中">`:''}</div>`;
+
+const dlabel=s=>{const t=today();return (s===t?'今天 · ':s===addDays(t,-1)?'昨天 · ':'')+md(s)+' 周'+'日一二三四五六'[pd(s).getDay()]};
+const dateBtn=(key,v,sm)=>`<button type="button" class="datebtn${sm?' sm':''}" data-act="cal-open" data-cal="${key}" data-v="${v}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>${dlabel(v)}</span></button>`;
+const dateField=f=>dateBtn('f:'+f,F[f]||today());
+let CAL=null;
+function renderCal(){const el=$('#cal');if(!CAL){el.innerHTML='';return}const t=today(),first=pd(CAL.ym),y=first.getFullYear(),m=first.getMonth(),lead=(first.getDay()+6)%7,dim=new Date(y,m+1,0).getDate();
+  let cells='<span></span>'.repeat(lead);for(let d=1;d<=dim;d++){const v=ds(new Date(y,m,d));cells+=`<button class="cd${v===CAL.value?' sel':''}${v===t?' tod':''}" data-act="cal-pick" data-v="${v}"${v>t?' disabled':''}${v===CAL.value?' aria-pressed="true"':''}>${d}</button>`}
+  el.innerHTML=`<div class="cal-back" data-act="cal-back"><div class="cal" role="dialog" aria-modal="true" aria-label="选择日期">
+    <div class="cal-h"><button class="x" data-act="cal-nav" data-n="-1" aria-label="上个月">‹</button><b>${y} 年 ${m+1} 月</b><button class="x" data-act="cal-nav" data-n="1"${ds(new Date(y,m+1,1))>t?' disabled':''} aria-label="下个月">›</button></div>
+    <div class="cal-w">${'一二三四五六日'.split('').map(x=>`<span>${x}</span>`).join('')}</div><div class="cal-g">${cells}</div>
+    <div class="cal-f"><button class="btn sm" data-act="cal-pick" data-v="${t}">今天</button><button class="btn sm" data-act="cal-pick" data-v="${addDays(t,-1)}">昨天</button><span style="flex:1"></span><button class="btn sm ghost" data-act="cal-close">取消</button></div></div></div>`}
+function applyDate(key,v){if(key==='c'){C.date=v;renderSheet()}else if(key.startsWith('f:')){F[key.slice(2)]=v;renderSheet()}
+  else if(key.startsWith('tl:')){const a=S.apps.find(x=>x.id===F.id);if(a){a.log[+key.slice(3)].at=v;norm(a);Store.app(a.id);render();renderSheet()}}}
+function addMenu(){return {title:'添加记录',body:`
+  <button class="choice" data-act="count-open"><b>记今天的数量</b><span>今天沟通了几个、换了几份简历。只记数字，不用填公司。</span></button>
+  <button class="choice" data-act="app-new"><b>有公司约我了</b><span>接到 HR 电话或面试邀请后，为这家公司建一份档案，之后跟进每一轮。</span></button>`}}
+const baseOf=k=>((S.settings.base||{})[k])||0;
+function bossCalc(){const all=sumCounts('0000','9999'),base=S.settings.base||{},out=[];
+  [['chat','沟通'],['resume','交换简历']].forEach(([k,n])=>{const raw=C['b'+k];if(raw===''||raw==null)return;const v=Math.max(0,Math.round(+raw)||0),first=base[k]==null,asBase=first&&C.first==='base';
+    out.push({k,n,v,first,asBase,diff:asBase?0:v-(first?0:base[k])-all[k],newBase:first?(asBase?Math.max(0,v-all[k]):0):null})});return out}
+function bossPreview(){const rows=bossCalc();if(!rows.length)return '填上 Boss 上显示的数字，今天新增了多少会自动算出来。';
+  return rows.map(r=>r.asBase?`<b>${r.n}</b>：把 ${r.v} 设为起点，不算进这一天。以后每次填，多出来的才会记录。`:r.diff>0?`<b>${r.n}</b>：比这里已记的多 <b>${r.diff}</b>，会记到 ${md(C.date)}的「${esc(C.dir)}」。`:r.diff===0?`<b>${r.n}</b>：和这里已记的一样，不用改。`:`<b>${r.n}</b>：Boss 上比这里已记的少 ${-r.diff}，不会改动。想改某一天的数字，切到「直接填这一天」。`).join('<br>')}
+function countSheet(){const d=C.date,dir=C.dir,v=((S.counts[d]||{})[dir])||{chat:0,resume:0},t=today(),base=S.settings.base||{},first=base.chat==null||base.resume==null;
+  const step=(k,n)=>`<div class="field"><label for="cs-${k}">${n}</label><div class="step"><button class="btn" data-act="cstep" data-k="${k}" data-n="-1" aria-label="${n}减一">−</button><input type="number" inputmode="numeric" min="0" id="cs-${k}" data-cset="${k}" value="${v[k]||0}"><button class="btn" data-act="cstep" data-k="${k}" data-n="1" aria-label="${n}加一">＋</button></div></div>`;
+  return {title:'记今天的数量',body:`
+  <div class="field"><span class="lbl">方向</span><div class="chips">${S.settings.directions.map(x=>`<button class="chip" data-act="cdir" data-v="${esc(x)}" aria-pressed="${x===dir}">${esc(x)}</button>`).join('')}<input class="chip-add" type="text" data-optadd="directions" data-cdir="1" placeholder="＋ 新方向" aria-label="添加方向"></div></div>
+  <div class="field"><span class="lbl">日期</span>${dateBtn('c',d)}</div>
+  <div class="chips"><button class="chip" data-act="cmode" data-v="boss" aria-pressed="${C.mode==='boss'}">照着 Boss 填</button><button class="chip" data-act="cmode" data-v="direct" aria-pressed="${C.mode==='direct'}">直接填这一天</button></div>
+  ${C.mode==='boss'?`
+  <div class="field"><span class="lbl">Boss直聘上现在显示多少？</span><div class="row"><label class="numf">沟通过<input type="number" inputmode="numeric" min="0" data-c="bchat" value="${esc(C.bchat)}"></label><label class="numf">交换过简历<input type="number" inputmode="numeric" min="0" data-c="bresume" value="${esc(C.bresume)}"></label></div></div>
+  ${first?`<div class="field"><span class="lbl">这是第一次填。Boss 上已有的这些次数怎么算？</span><div class="chips"><button class="chip" data-act="cfirst" data-v="base" aria-pressed="${C.first==='base'}">只当起点，从现在开始记</button><button class="chip" data-act="cfirst" data-v="all" aria-pressed="${C.first==='all'}">全部算进这一天</button></div></div>`:''}
+  <div class="note" id="bprev" style="color:var(--ink)">${bossPreview()}</div>
+  <button class="btn primary" data-act="boss-save">保存</button>`:`
+  <p class="muted small">${md(d)}「${esc(dir)}」这一天的次数。改完就自动保存。</p>
+  ${step('chat','沟通过')}${step('resume','交换过简历')}`}`}}
+function appFormSheet(){return {title:F.id?'修改档案':'新建公司档案',body:`
+  <div class="field"><label for="f-company">公司</label><input type="text" id="f-company" data-f="company" value="${esc(F.company||'')}"></div>
+  <div class="field"><label for="f-title">岗位</label><input type="text" id="f-title" data-f="title" value="${esc(F.title||'')}"></div>
+  <div class="field"><span class="lbl">方向</span>${pick('direction',S.settings.directions,'directions')}</div>
+  ${F.id?'':`<div class="field"><span class="lbl">从哪一步开始记</span>${pick('startStage',STEPS.map(s=>[s.k,s.n]))}</div><div class="field"><span class="lbl">哪一天</span>${dateField('at')}</div>`}
+  <div class="field"><span class="lbl">薪资</span>${pick('salary',S.settings.salary)}</div>
+  <div class="field"><span class="lbl">城市</span>${pick('city',S.settings.cities,'cities')}</div>
+  <div class="field"><span class="lbl">公司规模</span>${pick('size',S.settings.sizes)}</div>
+  <div class="field"><span class="lbl">行业</span>${pick('industry',S.settings.industries,'industries')}</div>
+  <div class="field"><label for="f-jd">岗位 JD（直接粘贴）</label><textarea id="f-jd" data-f="jd">${esc(F.jd||'')}</textarea></div>
+  <div class="field"><label for="f-note">备注</label><textarea id="f-note" data-f="note" style="min-height:60px">${esc(F.note||'')}</textarea></div>
+  <button class="btn primary" data-act="app-save">保存</button>`}}
+function progSheet(){const a=S.apps.find(x=>x.id===F.id),has=a.log.map(l=>l.to),done=a.status!=='active';
+  const opts=STEPS.filter(s=>!has.includes(s.k)).map(s=>[s.k,s.n]);if(!done)opts.push(['offer','拿到 Offer'],['end','结束（没走下去）']);
+  return {title:(done?'补记一步：':'更新进度：')+(a.company||''),body:`
+  <div class="field"><span class="lbl">到了哪一步</span>${pick('to',opts)}</div>
+  ${F.to==='end'?`<div class="field"><span class="lbl">结果</span>${pick('endReason',ENDS)}</div>`:''}
+  ${F.to==='end'&&F.endReason==='未通过'?`<div class="field"><span class="lbl">你觉得主要原因是</span>${pick('failReason',S.settings.failReasons)}</div>`:''}
+  <div class="field"><span class="lbl">哪一天</span>${dateField('at')}</div>
+  <button class="btn primary" data-act="prog-save">确定</button>
+  <p class="muted small">跳过的阶段不用补。记错了可以在详情的时间线里改日期或删除。</p>`}}
+function detailSheet(){const a=S.apps.find(x=>x.id===F.id);if(!a)return {title:'',body:''};
+  const info=[['方向',a.direction],['薪资',a.salary],['城市',a.city],['规模',a.size],['行业',a.industry]].filter(x=>x[1]).map(x=>`<span class="tag">${x[0]} ${esc(x[1])}</span>`).join(' ');
+  return {title:(a.company||'未填公司')+' · '+(a.title||''),body:`
+  <div class="row">${info}</div>
+  <div class="row"><button class="btn sm primary" data-act="prog-open" data-id="${a.id}">${a.status==='active'?'更新进度':'补记一步'}</button><button class="btn sm" data-act="iv-open">添加面试记录</button><button class="btn sm" data-act="app-edit" data-id="${a.id}">修改资料</button><button class="btn sm danger" data-act="app-del-ask" data-id="${a.id}">删除</button></div>
+  ${F.confirmDel?`<div class="banner"><span>删除后不能恢复。</span><button class="btn sm" data-act="app-del" data-id="${a.id}">确认删除</button></div>`:''}
+  <div class="field"><span class="lbl">时间线（日期可以直接改，记错的一步可以删掉）</span><ul class="tl">${a.log.map((l,i)=>`<li>${dateBtn('tl:'+i,l.at,true)}<span>${l.to==='end'?esc(a.endReason||'结束')+(a.failReason?'（'+esc(a.failReason)+'）':''):l.to==='offer'?'拿到 Offer':stageName(l.to)}</span>${isTerm(l)||a.log.filter(x=>!isTerm(x)).length>1?`<button class="x" data-act="tl-del" data-i="${i}" aria-label="删除这一步">×</button>`:''}</li>`).join('')}</ul></div>
+  ${a.jd?`<div class="field"><span class="lbl">岗位 JD</span><div class="pre">${esc(a.jd)}</div></div>`:''}
+  ${a.note?`<div class="field"><span class="lbl">备注</span><p>${esc(a.note)}</p></div>`:''}
+  <div class="field"><span class="lbl">面试记录</span>${(a.interviews||[]).map(iv=>`<div class="note" style="color:var(--ink)"><b>${stageName(iv.stage)}</b> · ${md(iv.date)} · ${esc(iv.format||'')}${iv.rating?' · 自评 '+esc(iv.rating):''}${iv.questions?`<div class="pre" style="margin-top:6px">${esc(iv.questions)}</div>`:''}${iv.note?`<p class="small" style="margin-top:6px">${esc(iv.note)}</p>`:''}<button class="btn sm ghost danger" style="margin-top:6px" data-act="iv-del" data-iv="${iv.id}">删除这条</button></div>`).join('')||'<p class="muted small">还没有。</p>'}</div>
+`}}
+function ivSheet(){const a=S.apps.find(x=>x.id===F.id);return {title:'添加面试记录：'+(a.company||''),body:`
+  <div class="field"><span class="lbl">哪一轮</span>${pick('ivStage',STEPS.map(s=>[s.k,s.n]))}</div>
+  <div class="field"><span class="lbl">日期</span>${dateBtn('f:ivDate',F.ivDate||today())}</div>
+  <div class="field"><span class="lbl">形式</span>${pick('ivFormat',['电话','视频','现场'])}</div>
+  <div class="field"><span class="lbl">自评</span>${pick('ivRating',['好','一般','差'])}</div>
+  <div class="field"><label for="iv-q">被问到的问题（一行一个）</label><textarea id="iv-q" data-f="ivQ">${esc(F.ivQ||'')}</textarea></div>
+  <div class="field"><label for="iv-n">复盘</label><textarea id="iv-n" data-f="ivNote" style="min-height:60px">${esc(F.ivNote||'')}</textarea></div>
+  <div class="row"><button class="btn primary" data-act="iv-save">保存</button><button class="btn" data-act="iv-back">返回详情</button></div>`}}
+function dirsSheet(){return {title:'你在投哪些方向？',body:`<p class="muted">之后每次记录只要点一下方向。先删掉不相关的，加上你自己的，随时可以在设置里改。</p>${listEditor('directions')}<button class="btn primary" data-act="sheet-close">好了，开始</button>`}}
+function wipeSheet(){return {title:'删除全部记录？',body:`<p>所有计数和公司档案都会被删除，不能恢复。建议先在上面导出一份备份。</p><div class="row"><button class="btn danger" data-act="wipe">确认删除</button><button class="btn" data-act="sheet-close">取消</button></div>`}}
+
+/* ============ 总结 ============ */
+function wrapStats(from,to){const f=funnel(from,to),len=dd(from,to)+1,pf=funnel(addDays(from,-len),addDays(from,-1));
+  const days=Object.entries(f.byDay).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);const dirs=Object.entries(f.byDir).sort((a,b)=>b[1].chat-a[1].chat);
+  const newHr=S.apps.filter(a=>a.createdAt>=from&&a.createdAt<=to),iv=S.apps.filter(a=>a.log.some(l=>RANK[l.to]>=1&&l.at>=from&&l.at<=to));
+  const s={chat:f.n.chat,resume:f.n.resume,hr:f.n.hr,r1:f.n.r1,offer:f.n.offer,iv:iv.length,activeDays:days.length,pchat:pf.n.chat,presume:pf.n.resume,best:days[0],dirs,newHr,ivApps:iv,adv:dirAdvice(from,to),
+    waiting:S.apps.filter(a=>a.status==='active').length,total:sumCounts('0000','9999').chat};
+  s.title=RULES.titles.find(t=>t.test(s));return s}
+function wrapCards(){const s=W.s,L=W.label,nm=S.settings.name?esc(S.settings.name)+'，':'',delta=(a,b)=>b===0?(a>0?'上一期这里还是空的。':''):a===b?'和上一期持平。':a>b?'比上一期多 '+(a-b)+' 次。':'比上一期少 '+(b-a)+' 次，节奏有起伏很正常。';
+  const top=s.dirs[0];
+  return [
+  `<p class="wk">${L} · 你的努力</p><p class="wt">${nm}${s.chat?'你主动开口了':'这段时间你没有记录沟通'}</p><p class="wn">${s.chat}</p><p class="wb">${s.chat?'次沟通，换来 '+s.resume+' 次交换简历。'+delta(s.chat,s.pchat):'停下来喘口气也算数。到今天你一共沟通过 '+s.total+' 次，它们都还在。'}</p>`,
+  `<p class="wk">${L} · 坚持</p><p class="wt">有行动的日子</p><p class="wn">${s.activeDays}</p><p class="wb">天。${s.best?'最勤奋的是 '+md(s.best[0])+'，那天记了 '+s.best[1]+' 笔。':''} 到今天你累计行动了 ${totalDays()} 天。</p>`,
+  `<p class="wk">${L} · 方向</p><p class="wt">你把最多的精力给了</p><p class="wn mid">${top?esc(top[0]):'—'}</p><p class="wb">${top?'沟通 '+top[1].chat+' 次，占这段时间的 '+pct(top[1].chat,s.chat)+'。':'这段时间还没有按方向的记录。'}</p>${s.dirs.length>1?`<div class="wlist">${s.dirs.slice(0,4).map(d=>`<div><span>${esc(d[0])}</span><b>${d[1].chat}</b></div>`).join('')}</div>`:''}`,
+  `<p class="wk">${L} · 漏斗</p><p class="wt">每一步走下来的样子</p><div class="wlist"><div><span>沟通过</span><b>${s.chat}</b></div><div><span>交换过简历 <small>${pct(s.resume,s.chat)}</small></span><b>${s.resume}</b></div><div><span>HR 电话 <small>${pct(s.hr,s.resume)}</small></span><b>${s.hr}</b></div><div><span>进入面试</span><b>${s.iv}</b></div><div><span>Offer</span><b>${s.offer}</b></div></div><p class="wb" style="margin-top:14px">${s.pchat?'沟通换简历的比例：上一期 '+pct(s.presume,s.pchat)+'，这一期 '+pct(s.resume,s.chat)+'。':'每一层都会少很多人，这是所有人的漏斗。'}</p>`,
+  `<p class="wk">${L} · 进展</p><p class="wt">${s.newHr.length||s.ivApps.length?'有人接住了你':'这段时间还在等回音'}</p><p class="wn">${s.newHr.length+s.ivApps.filter(a=>!s.newHr.includes(a)).length}</p><p class="wb">${s.newHr.length||s.ivApps.length?'家公司往前走了一步：'+[...new Set([...s.newHr,...s.ivApps])].slice(0,6).map(a=>esc(a.company||'未填公司')).join('、')+'。':'没有新进展的一周不等于白费。还有 '+s.waiting+' 家公司在流程里。'}</p>`,
+  `<p class="wk">${L} · 方向建议</p><p class="wt">${s.adv.best?'表现最好的方向':'关于方向'}</p>${s.adv.best?`<p class="wn mid">${esc(s.adv.best.d)}</p>`:''}<p class="wb">${esc(s.adv.text)}</p>`,
+  `<p class="wk">${L} · 你的称号</p><p class="wt">这段时间，你是</p><p class="wn mid">${s.title.name}</p><p class="wb">${s.title.why}。</p>`,
+  `<p class="wk">${S.settings.name?esc(S.settings.name)+'的':''}${L}汇总</p><p class="wt">${s.title.name}</p><div class="wlist"><div><span>沟通</span><b>${s.chat}</b></div><div><span>交换简历</span><b>${s.resume}</b></div><div><span>HR 电话</span><b>${s.hr}</b></div><div><span>面试</span><b>${s.iv}</b></div><div><span>行动天数</span><b>${s.activeDays}</b></div><div><span>还在流程中</span><b>${s.waiting}</b></div></div><span class="wsp"></span><div class="wact"><button class="btn" data-act="wrap-png">保存为图片</button><button class="btn" data-act="wrap-close" style="background:transparent;color:inherit;border-color:currentColor">关闭</button></div>`
+  ]}
+function renderWrap(){const el=$('#wrap');if(!W){el.innerHTML='';return}const cards=wrapCards(),i=W.i;
+  el.innerHTML=`<div class="wrap"><div class="wcard c${i}" role="dialog" aria-modal="true" aria-label="${esc(W.label)}总结，第 ${i+1} 页，共 ${cards.length} 页"><div class="wprog">${cards.map((_,k)=>`<i class="${k<=i?'on':''}"></i>`).join('')}</div><button class="wx" data-act="wrap-close" aria-label="关闭">×</button>
+  ${i<cards.length-1?'<div class="wnav"><button data-act="wrap-prev" aria-label="上一页"></button><button data-act="wrap-next" aria-label="下一页"></button></div>':''}
+  ${cards[i]}${i<cards.length-1?'<span class="wsp"></span><p class="wfoot">点右边继续，点左边返回 · '+(i+1)+' / '+cards.length+'</p>':''}</div></div>`}
+async function saveFile(filename,data,mime){try{
+    if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(!dl){toast('这里暂时不能保存文件');return false}await dl.save({filename,data});return true}
+    const blob=data instanceof Blob?data:new Blob([data],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();return true
+  }catch(e){if(!(e&&e.code==='declined'))toast('没有保存成功，请再试一次');return false}}
+function wrapPng(){const s=W.s,c=document.createElement('canvas');c.width=1080;c.height=1620;const x=c.getContext('2d');
+  x.fillStyle='#F6F4EC';x.fillRect(0,0,1080,1620);x.fillStyle='#BBD3EE';x.fillRect(0,0,1080,60);['#A9C8EC','#F6DC8C','#F4AE9E','#A9D8B4','#D2BAE2'].forEach((c,i)=>{x.fillStyle=c;x.fillRect(80+i*52,96,40,12)});
+  x.fillStyle='#3A3F3A';x.textBaseline='top';x.font='500 40px "Noto Sans SC",sans-serif';x.globalAlpha=.75;x.fillText((S.settings.name?S.settings.name+'的':'求职计数本 · ')+W.label+'总结',80,140);x.globalAlpha=1;
+  x.font='900 120px "Noto Serif SC",serif';x.fillStyle='#3A6EA5';x.fillText(s.title.name,80,220);
+  const rows=[['沟通',s.chat],['交换简历',s.resume],['HR 电话',s.hr],['面试',s.iv],['行动天数',s.activeDays],['还在流程中',s.waiting]];
+  rows.forEach((r,i)=>{const y=470+i*160;x.fillStyle='#3A3F3A';x.font='500 48px "Noto Sans SC",sans-serif';x.fillText(r[0],80,y+36);x.font='800 110px "Bricolage Grotesque",sans-serif';x.textAlign='right';x.fillText(String(r[1]),1000,y);x.textAlign='left';x.globalAlpha=.25;x.fillRect(80,y+136,920,2);x.globalAlpha=1});
+  x.font='500 36px "Noto Sans SC",sans-serif';x.globalAlpha=.7;x.fillText(md(W.from)+' 至 '+md(W.to)+' · 每一次沟通都算数',80,1500);
+  c.toBlob(b=>{if(b)saveFile('求职总结-'+W.to+'.png',b,'image/png')},'image/png')}
+
+/* ============ 动作 ============ */
+function setCount(d,dir,k,n){const day=S.counts[d]||(S.counts[d]={}),v=day[dir]||(day[dir]={chat:0,resume:0});v[k]=Math.max(0,(v[k]||0)+n);if(!v.chat&&!v.resume)delete day[dir];if(!Object.keys(day).length)delete S.counts[d];Store.counts()}
+function addOpt(k,v){v=v.trim();if(!v)return false;if(!S.settings[k].includes(v)){S.settings[k].push(v);Store.settings()}return true}
+function blank(){return {settings:{...DEFAULTS,directions:[...DEFAULTS.directions],started:true},counts:{},apps:[]}}
+const A={
+  'sheet-close'(){closeSheet()},
+  'sheet-back'(el,e){if(e.target===el)closeSheet()},
+  ui(el){UI[el.dataset.k]=el.dataset.v;render()},
+  start(){demo=false;const keep=S.settings.started;S=blank();Store.settings();render();openSheet(dirsSheet)},
+  demo(){demo=true;S=makeDemo();render();toast('已载入示例数据')},
+  'cal-open'(el){CAL={key:el.dataset.cal,value:el.dataset.v,ym:monthStart(el.dataset.v)};renderCal()},
+  'cal-nav'(el){const d=pd(CAL.ym);d.setMonth(d.getMonth()+(+el.dataset.n));CAL.ym=ds(d);renderCal()},
+  'cal-pick'(el){const k=CAL.key;CAL=null;renderCal();applyDate(k,el.dataset.v)},
+  'cal-close'(){CAL=null;renderCal()},
+  'cal-back'(el,e){if(e.target===el){CAL=null;renderCal()}},
+  'add-open'(){openSheet(addMenu)},
+  'count-open'(){C={dir:S.settings.directions.includes(S.settings.lastDir)?S.settings.lastDir:S.settings.directions[0]||'',date:today(),mode:S.settings.cmode||'boss',bchat:'',bresume:'',first:'base'};if(!C.dir){openSheet(dirsSheet);return}openSheet(countSheet)},
+  cmode(el){C.mode=el.dataset.v;S.settings.cmode=C.mode;Store.settings();renderSheet()},
+  cfirst(el){C.first=el.dataset.v;renderSheet()},
+  cstep(el){setCount(C.date,C.dir,el.dataset.k,+el.dataset.n);render();renderSheet()},
+  'boss-save'(){const rows=bossCalc();if(!rows.length){toast('先填上 Boss 上显示的数字');return}const base=S.settings.base||(S.settings.base={}),msg=[];
+    rows.forEach(r=>{if(r.first)base[r.k]=r.newBase;if(r.diff>0){setCount(C.date,C.dir,r.k,r.diff);msg.push(r.n+' +'+r.diff)}else if(r.asBase)msg.push(r.n+'起点 '+r.v)});
+    Store.settings();closeSheet();render();toast(msg.length?'已记录：'+msg.join('，'):'和 Boss 上一致，没有改动')},
+  cdir(el){C.dir=el.dataset.v;if(S.settings.lastDir!==C.dir){S.settings.lastDir=C.dir;Store.settings()}renderSheet()},
+  setf(el){F[el.dataset.f]=el.dataset.v;renderSheet()},
+  pick(el){const f=el.dataset.f,v=el.dataset.v;F[f]=F[f]===v?'':v;renderSheet()},
+  'app-new'(){F={direction:C.dir||S.settings.lastDir||'',startStage:'hr',at:today()};openSheet(appFormSheet)},
+  'app-edit'(el){const a=S.apps.find(x=>x.id===el.dataset.id);F={...a};openSheet(appFormSheet)},
+  'app-save'(){if(!(F.company||'').trim()){toast('先填一下公司名');return}const t=today();
+    const fields=['company','title','direction','salary','city','size','industry','jd','note'];
+    if(F.id){const a=S.apps.find(x=>x.id===F.id);fields.forEach(k=>a[k]=F[k]||'');Store.app(a.id)}
+    else{const a=norm({id:uid(),log:[{to:F.startStage||'hr',at:F.at&&F.at<=t?F.at:t}],interviews:[]});fields.forEach(k=>a[k]=F[k]||'');S.apps.push(a);Store.app(a.id);toast('已建档：'+a.company)}
+    closeSheet();render()},
+  'prog-open'(el){const a=S.apps.find(x=>x.id===el.dataset.id);if(!a)return;const has=a.log.map(l=>l.to),nx=NEXT[a.stage];
+    F={id:a.id,to:a.status==='active'&&!has.includes(nx)?nx:'',at:today(),endReason:'',failReason:''};openSheet(progSheet)},
+  'prog-save'(){const a=S.apps.find(x=>x.id===F.id),t=today();if(!F.to){toast('选一下到了哪一步');return}if(F.to==='end'&&!F.endReason){toast('选一个结果');return}
+    const ev={to:F.to,at:F.at&&F.at<=t?F.at:t};a.log.push(ev);norm(a);
+    if(F.to==='end'){a.endReason=F.endReason;a.failReason=F.endReason==='未通过'?(F.failReason||''):''}
+    A._ev={id:a.id,ev};Store.app(a.id);closeSheet();render();
+    toast(F.to==='offer'?'恭喜，拿到 Offer！':F.to==='end'?'已记录。走到'+stageName(a.stage)+'本身就是进展。':a.company+'：'+stageName(F.to)+'，'+md(ev.at),a.id)},
+  undo(el){const u=A._ev,a=S.apps.find(x=>x.id===el.dataset.id);if(!a||!u||u.id!==a.id||!a.log.includes(u.ev))return;
+    a.log=a.log.filter(l=>l!==u.ev);norm(a);A._ev=null;Store.app(a.id);render();renderSheet();toast('已撤销，'+a.company+' 回到'+stageName(a.stage))},
+  'tl-del'(el){const a=S.apps.find(x=>x.id===F.id);a.log.splice(+el.dataset.i,1);norm(a);Store.app(a.id);render();renderSheet();toast('已删除这一步')},
+  detail(el){F={id:el.dataset.id};openSheet(detailSheet)},
+  'iv-open'(){const a=S.apps.find(x=>x.id===F.id);F={id:a.id,ivStage:a.stage,ivDate:today()};openSheet(ivSheet)},
+  'iv-back'(){F={id:F.id};openSheet(detailSheet)},
+  'app-del-ask'(){F.confirmDel=true;renderSheet()},
+  'app-del'(el){S.apps=S.apps.filter(x=>x.id!==el.dataset.id);Store.app(el.dataset.id);closeSheet();render();toast('已删除')},
+  'iv-save'(){const a=S.apps.find(x=>x.id===F.id);(a.interviews||(a.interviews=[])).push({id:uid(),stage:F.ivStage||a.stage,date:F.ivDate||today(),format:F.ivFormat||'',rating:F.ivRating||'',questions:F.ivQ||'',note:F.ivNote||''});
+    Store.app(a.id);F={id:a.id};openSheet(detailSheet);render();toast('面试记录已保存')},
+  'iv-del'(el){const a=S.apps.find(x=>x.id===F.id);a.interviews=a.interviews.filter(i=>i.id!==el.dataset.iv);Store.app(a.id);renderSheet();render()},
+  'opt-del'(el){const k=el.dataset.k;S.settings[k]=S.settings[k].filter(v=>v!==el.dataset.v);Store.settings();render();renderSheet()},
+  'wrap-open'(el){const d=el.dataset;W={from:d.from,to:d.to,label:d.label,i:0,s:wrapStats(d.from,d.to)};renderWrap()},
+  'wrap-close'(){W=null;renderWrap()},
+  'wrap-next'(){if(W.i<7){W.i++;renderWrap()}},
+  'wrap-prev'(){if(W.i>0){W.i--;renderWrap()}},
+  'wrap-png'(){wrapPng()},
+  async export(){if(demo){toast('示例数据不用备份，开始记录后再导出');return}const ok=await saveFile('求职记录备份-'+today()+'.json',JSON.stringify({version:1,exportedAt:today(),...S},null,2),'application/json');if(ok){S.settings.lastBackup=today();Store.settings();render()}},
+  'wipe-ask'(){openSheet(wipeSheet)},
+  wipe(){const old=S.apps.map(a=>a.id);S=blank();Store.all(old);closeSheet();render();toast('已清空')}
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;const fn=A[el.dataset.act];if(fn){if(el.tagName==='BUTTON')e.preventDefault();fn(el,e)}});
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset.f)F[t.dataset.f]=t.value;
+  if(t.dataset.c){C[t.dataset.c]=t.value;const p=$('#bprev');if(p)p.innerHTML=bossPreview()}
+  if(t.id==='ivq'){UI.q=t.value;$('#ivlist').innerHTML=ivList()}});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.optadd){const k=t.dataset.optadd,v=t.value.trim();if(addOpt(k,v)){if(t.dataset.pick)F[t.dataset.pick]=v;if(t.dataset.cdir){C.dir=v;S.settings.lastDir=v;Store.settings()}}render();renderSheet();return}
+  if(t.dataset.tl!=null&&t.dataset.tl!==''&&t.value){const a=S.apps.find(x=>x.id===F.id);if(a){a.log[+t.dataset.tl].at=t.value>today()?today():t.value;norm(a);Store.app(a.id);render();renderSheet()}return}
+  if(t.dataset.rr)return;
+  if(t.dataset.cset){const k=t.dataset.cset,cur=(((S.counts[C.date]||{})[C.dir])||{})[k]||0;setCount(C.date,C.dir,k,Math.max(0,Math.round(+t.value)||0)-cur);render();toast('已保存');return}
+  if(t.id==='cdate'&&t.value){C.date=t.value>today()?today():t.value;renderSheet()}
+  if(t.id==='uname'){S.settings.name=t.value.trim().slice(0,20);Store.settings();render();toast(S.settings.name?'已保存':'已清空名字');return}
+  if(t.id==='rd'){S.settings.remindDays=Math.max(1,Math.min(60,+t.value||7));Store.settings();render()}
+  if(t.id==='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o.counts!=='object'||!Array.isArray(o.apps))throw 0;const old=demo?[]:S.apps.map(a=>a.id);demo=false;
+    S={settings:{...DEFAULTS,...o.settings,started:true},counts:o.counts,apps:o.apps.map(norm)};Store.all(old);render();toast('已导入 '+o.apps.length+' 份档案和全部计数')}catch(err){toast('这个文件不是本页面导出的备份，没有导入')}};r.readAsText(t.files[0])}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.optadd){e.target.blur()}
+  if(W){if(e.key==='ArrowRight')A['wrap-next']();if(e.key==='ArrowLeft')A['wrap-prev']();if(e.key==='Escape')A['wrap-close']()}else if(e.key==='Escape'&&CAL){CAL=null;renderCal()}else if(e.key==='Escape'&&sheetFn)closeSheet()});
+window.addEventListener('hashchange',go);
+
+(async function boot(){await Store.init();
+  if(!S.settings.started&&!Object.keys(S.counts).length&&!S.apps.length){demo=true;S=makeDemo()}
+  loaded=true;go()})();
+</script>
+</body>
+</html>
